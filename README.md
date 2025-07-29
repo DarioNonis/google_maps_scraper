@@ -31,8 +31,8 @@ Ce projet permet de **scraper des fiches Google Maps**, et de stocker automatiqu
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/DarioNonis/scraper.git
-cd scraper
+git clone https://github.com/DarioNonis/google_maps_scraper.git
+cd google_maps_scraper
 ```
 
 ### 2. Installer les dépendances
