@@ -5,8 +5,8 @@ from db import initialiser_db, inserer_fiches
 
 FICHIER_RECHERCHES = "recherches.csv"
 
-# Modifiez <NOM_UTILISATEUR> ci-dessous
-EXTENSION_PATH = r"C:\Users\<NOM_UTILISATEUR>\AppData\Local\Google\Chrome\User Data\Default\Extensions\mjllncbijgeccmolnikpkbkpbjggcgij\1.0.6_0"
+# Ajouter le chemin vers l'extension Scrap.io ci-dessous
+EXTENSION_PATH = r""
 
 def scraper_google_maps(secteur, ville):
     with sync_playwright() as p:
