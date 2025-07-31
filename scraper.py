@@ -4,9 +4,18 @@ from playwright.sync_api import sync_playwright
 from db import initialiser_db, inserer_fiches
 
 FICHIER_RECHERCHES = "recherches.csv"
+FICHIER_ECHECS = "requetes_echouees.csv"
 
 # Ajouter le chemin vers l'extension Scrap.io ci-dessous
 EXTENSION_PATH = r""
+
+
+def enregistrer_echec(secteur, ville):
+    with open(FICHIER_ECHECS, mode="a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([secteur, ville])
+        print(f"Requête échouée enregistrée : {secteur},{ville}")
+
 
 def scraper_google_maps(secteur, ville):
     with sync_playwright() as p:
@@ -39,6 +48,7 @@ def scraper_google_maps(secteur, ville):
             print("Recherche lancée")
         except:
             print("Erreur lors de la recherche")
+            enregistrer_echec(secteur, ville)
             context.close()
             return []
 
@@ -47,6 +57,7 @@ def scraper_google_maps(secteur, ville):
             print("Résultats chargés")
         except:
             print("Conteneur non détecté")
+            enregistrer_echec(secteur, ville)
             context.close()
             return []
 
@@ -58,21 +69,31 @@ def scraper_google_maps(secteur, ville):
         max_stagnant = 5
         max_scrolls = 60
 
-        for _ in range(max_scrolls):
-            page.evaluate("document.querySelector('div[role=feed]').scrollBy(0, 1000)")
-            time.sleep(0.7)
-            current_cards = page.query_selector_all("div.scrapio-card")
-            current_count = len(current_cards)
+        try:
+            for _ in range(max_scrolls):
+                feed = page.query_selector(feed_selector)
+                if not feed:
+                    raise Exception("Conteneur de résultats introuvable pendant le scroll")
+                page.evaluate("document.querySelector('div[role=feed]').scrollBy(0, 1000)")
+                time.sleep(0.7)
+                current_cards = page.query_selector_all("div.scrapio-card")
+                current_count = len(current_cards)
 
-            if current_count == previous_count:
-                stagnant_iterations += 1
-                if stagnant_iterations >= max_stagnant:
-                    break
-            else:
-                stagnant_iterations = 0
-                previous_count = current_count
+                if current_count == previous_count:
+                    stagnant_iterations += 1
+                    if stagnant_iterations >= max_stagnant:
+                        break
+                else:
+                    stagnant_iterations = 0
+                    previous_count = current_count
 
-        print("Scroll terminé")
+            print("Scroll terminé")
+
+        except Exception as e:
+            print(f"Erreur pendant le scroll : {e}")
+            enregistrer_echec(secteur, ville)
+            context.close()
+            return []
 
         items = page.query_selector_all("div.Nv2PK")
         scrap_cards = page.query_selector_all("div.scrapio-card")
@@ -145,13 +166,15 @@ def scraper_google_maps(secteur, ville):
         context.close()
         return results
 
+
 def lire_recherches():
     with open(FICHIER_RECHERCHES, newline='', encoding="utf-8") as f:
         reader = csv.reader(f)
         return [(ligne[0].strip(), ligne[1].strip()) for ligne in reader if len(ligne) == 2]
 
+
 if __name__ == "__main__":
-    initialiser_db()  # nouvelle initialisation SQLite
+    initialiser_db()
     toutes_les_recherches = lire_recherches()
     for secteur, ville in toutes_les_recherches:
         fiches = scraper_google_maps(secteur, ville)
